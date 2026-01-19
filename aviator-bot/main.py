@@ -1,5 +1,5 @@
 from aviator import bet_manual, bet_auto, cashout, open_history, toggle_auto_cashout
-from voice import listen_command
+from voice import start_listening
 import threading
 import re
 
@@ -13,8 +13,6 @@ def word_to_number(word):
     return NUM_WORDS.get(word.lower())
 
 def parse_command(text):
-    if not text:
-        return None
     text = text.lower().strip()
 
     # HISTÓRICO
@@ -28,8 +26,7 @@ def parse_command(text):
             return ("cashout", int(nums[0]))
         for word in text.split():
             n = word_to_number(word)
-            if n:
-                return ("cashout", n)
+            if n: return ("cashout", n)
         return None
 
     # DESLIGAR SAQUE AUTOMÁTICO
@@ -40,8 +37,7 @@ def parse_command(text):
             return ("disable_auto_cashout", int(nums[0]))
         for word in text.split():
             n = word_to_number(word)
-            if n:
-                return ("disable_auto_cashout", n)
+            if n: return ("disable_auto_cashout", n)
         return None
 
     # APOSTA AUTOMÁTICA
@@ -63,11 +59,9 @@ def parse_command(text):
         else:
             for word in text.split():
                 n = word_to_number(word)
-                if n:
-                    bet_num = n
-                    break
+                if n: bet_num = n; break
 
-        # valor em reais (opcional)
+        # valor opcional
         value = None
         match_val = re.search(r"(\d+[.,]?\d*)\s*(reais?|r\$)", text)
         if match_val:
@@ -82,10 +76,8 @@ def parse_command(text):
     return None
 
 def execute_command(cmd):
-    if not cmd:
-        return
-    if cmd[0] == "history":
-        open_history()
+    if not cmd: return
+    if cmd[0] == "history": open_history()
     elif cmd[0] == "bet_manual":
         _, bet, value, use_value = cmd
         bet_manual(bet, value, use_value)
@@ -99,6 +91,14 @@ def execute_command(cmd):
         _, bet = cmd
         toggle_auto_cashout(bet)
 
+def process_spoken(text):
+    print(f"🗣️ Você disse: {text}")
+    cmd = parse_command(text)
+    if cmd:
+        threading.Thread(target=execute_command, args=(cmd,), daemon=True).start()
+    else:
+        print("❌ Comando não reconhecido")
+
 print("\n🎮 AVIATOR BOT ULTRA-RÁPIDO ATIVO\n")
 print("📢 EXEMPLOS DE COMANDOS:")
 print("aposta 1")
@@ -111,19 +111,10 @@ print("saque 1")
 print("tirar saque automático 1")
 print("abrir histórico\n")
 
-try:
-    while True:
-        spoken = listen_command()
-        if not spoken:
-            continue
-        print(f"🗣️ Você disse: {spoken}")
+# inicia o background listener
+stop_listening = start_listening(process_spoken)
 
-        cmd = parse_command(spoken)
-        if not cmd:
-            print("❌ Comando não reconhecido\n")
-            continue
-
-        threading.Thread(target=execute_command, args=(cmd,), daemon=True).start()
-
-except KeyboardInterrupt:
-    print("\n🛑 Bot finalizado manualmente.")
+# mantém o programa vivo
+import time
+while True:
+    time.sleep(1)

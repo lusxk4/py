@@ -1,30 +1,24 @@
-# voice.py
 import speech_recognition as sr
-import time
 
 recognizer = sr.Recognizer()
+microphone = sr.Microphone()
 
-def listen_command(timeout=2, phrase_time_limit=3):
+def start_listening(callback_function):
     """
-    Escuta comando de voz.
-    Junta fragmentos curtos em uma única frase para não cortar a fala.
+    callback_function(text) será chamado sempre que uma frase for reconhecida
     """
-    with sr.Microphone() as source:
-        recognizer.adjust_for_ambient_noise(source, duration=0.2)
-        print("🎙️ Ouvindo comando...")
-
+    def internal_callback(recognizer, audio):
         try:
-            audio = recognizer.listen(source, timeout=timeout, phrase_time_limit=phrase_time_limit)
             text = recognizer.recognize_google(audio, language="pt-BR")
             text = text.lower().strip()
             if text:
-                return text
-        except sr.WaitTimeoutError:
-            return None
+                callback_function(text)
         except sr.UnknownValueError:
-            print("❌ Não entendi")
-            return None
+            pass
         except sr.RequestError as e:
             print(f"❌ Erro de serviço: {e}")
-            return None
-    return None
+
+    with microphone as source:
+        recognizer.adjust_for_ambient_noise(source, duration=0.1)
+    stop_listening = recognizer.listen_in_background(microphone, internal_callback, phrase_time_limit=2)
+    return stop_listening

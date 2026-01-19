@@ -1,10 +1,8 @@
 import pyautogui
-import time
 import coordinates as c
 
-# Configuração de velocidade ultra-rápida
 pyautogui.FAILSAFE = True
-pyautogui.PAUSE = 0.02  # quase instantâneo
+pyautogui.PAUSE = 0.02  # ultra-rápido
 
 def click(pos):
     pyautogui.click(pos)
@@ -21,10 +19,6 @@ def open_history():
 
 # ===== APOSTAS =====
 def bet_manual(bet, value=None, use_value=True):
-    """
-    Se use_value=True e value definido -> digita antes de apostar.
-    Se use_value=False ou value=None -> clica direto no botão.
-    """
     if bet == 1:
         if use_value and value is not None:
             clear_and_type(value, c.BET1_VALUE_INPUT)
@@ -55,9 +49,6 @@ def cashout(bet):
         click(c.BET2_BET_BUTTON)
 
 def toggle_auto_cashout(bet):
-    """
-    Desliga o saque automático da aposta especificada.
-    """
     if bet == 1:
         click(c.BET1_AUTO_TOGGLE)
     elif bet == 2:
