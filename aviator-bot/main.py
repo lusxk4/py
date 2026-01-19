@@ -21,6 +21,17 @@ def parse_command(text):
     if "histórico" in text or "historico" in text:
         return ("history",)
 
+    # ---------- DESLIGAR SAQUE AUTOMÁTICO ----------
+    # DEVE VIR ANTES DE "SAQUE" para não confundir!
+    if ("remover" in text or "desligar" in text or "tirar" in text) and ("auto" in text or "alto" in text or "automático" in text or "automatico" in text):
+        # Procura especificamente "aposta X" ou final da frase
+        if "aposta 2" in text or text.endswith(" 2") or text.endswith("dois") or " 2 " in text:
+            return ("disable_auto_cashout", 2)
+        if "aposta 1" in text or text.endswith(" 1") or text.endswith("um") or " 1 " in text:
+            return ("disable_auto_cashout", 1)
+        # Se não especificou, assume aposta 1
+        return ("disable_auto_cashout", 1)
+
     # ---------- SAQUE ----------
     if "sac" in text or "sacar" in text or "saque" in text or "cash" in text:
         # Procura número da aposta - PRIORIZA 2
@@ -29,16 +40,6 @@ def parse_command(text):
         if "1" in text or "um" in text or " 1" in text:
             return ("cashout", 1)
         return None
-
-    # ---------- DESLIGAR SAQUE AUTOMÁTICO ----------
-    if ("remover" in text or "desligar" in text or "tirar" in text) and ("auto" in text or "alto" in text):
-        # Procura especificamente "aposta X" ou final da frase
-        if "aposta 2" in text or text.endswith(" 2") or text.endswith("dois"):
-            return ("disable_auto_cashout", 2)
-        if "aposta 1" in text or text.endswith(" 1") or text.endswith("um"):
-            return ("disable_auto_cashout", 1)
-        # Se não especificou, assume aposta 1
-        return ("disable_auto_cashout", 1)
 
     # ---------- APOSTA ----------
     if "aposta" in text or "apostar" in text:
@@ -53,7 +54,8 @@ def parse_command(text):
             return None
         
         # Procura TODOS os valores (números que não são 1 ou 2)
-        nums = re.findall(r"(\d+(?:[.,]\d+)?)", text)
+        # Regex melhorado para pegar números isolados
+        nums = re.findall(r"\b(\d+(?:[.,]\d+)?)\b", text)
         values = []
         for n in nums:
             n_clean = n.replace(",", ".")
