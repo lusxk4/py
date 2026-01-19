@@ -1,5 +1,5 @@
 from aviator import bet_manual, bet_auto, cashout, open_history, toggle_auto_cashout
-from voice import start_listening
+from voice import listen_command
 import threading
 import re
 
@@ -13,71 +13,78 @@ def word_to_number(word):
     return NUM_WORDS.get(word.lower())
 
 def parse_command(text):
+    if not text:
+        return None
     text = text.lower().strip()
 
-    # HISTÓRICO
+    # ---------- HISTÓRICO ----------
     if "histórico" in text or "historico" in text:
         return ("history",)
 
-    # SAQUE
-    if re.search(r"\b(sa(c|que|car)|sacar)\b", text):
-        nums = re.findall(r"\d+", text)
-        if nums:
-            return ("cashout", int(nums[0]))
-        for word in text.split():
-            n = word_to_number(word)
-            if n: return ("cashout", n)
+    # ---------- SAQUE ----------
+    if "sac" in text or "sacar" in text:
+        # Procura número da aposta
+        if "2" in text or "dois" in text:
+            return ("cashout", 2)
+        if "1" in text or "um" in text:
+            return ("cashout", 1)
         return None
 
-    # DESLIGAR SAQUE AUTOMÁTICO
-    if re.search(r"\b(remover|desligar|tirar|desativar)\b", text) and \
-       re.search(r"\b(saque|auto)\b", text):
-        nums = re.findall(r"\d+", text)
-        if nums:
-            return ("disable_auto_cashout", int(nums[0]))
-        for word in text.split():
-            n = word_to_number(word)
-            if n: return ("disable_auto_cashout", n)
+    # ---------- DESLIGAR SAQUE AUTOMÁTICO ----------
+    if ("remover" in text or "desligar" in text or "tirar" in text) and "auto" in text:
+        if "2" in text or "dois" in text:
+            return ("disable_auto_cashout", 2)
+        if "1" in text or "um" in text:
+            return ("disable_auto_cashout", 1)
         return None
 
-    # APOSTA AUTOMÁTICA
-    if ("aposta" in text or "apostar" in text) and "auto" in text:
-        nums = re.findall(r"\d+[.,]?\d*", text)
-        if len(nums) >= 3:
-            bet = int(nums[0])
-            value = float(nums[1].replace(",", "."))
-            auto = float(nums[2].replace(",", "."))
-            return ("bet_auto", bet, value, auto)
-        return None
-
-    # APOSTA MANUAL
+    # ---------- APOSTA ----------
     if "aposta" in text or "apostar" in text:
+        # Identifica qual aposta (1 ou 2) - PRIORIZA 2 ANTES DE 1
         bet_num = None
-        nums = re.findall(r"\d+", text)
-        if nums:
-            bet_num = int(nums[0])
-        else:
-            for word in text.split():
-                n = word_to_number(word)
-                if n: bet_num = n; break
-
-        # valor opcional
-        value = None
-        match_val = re.search(r"(\d+[.,]?\d*)\s*(reais?|r\$)", text)
-        if match_val:
-            value = float(match_val.group(1).replace(",", "."))
-
-        if bet_num is not None:
-            if value is None:
-                return ("bet_manual", bet_num, None, False)
+        if "aposta 2" in text or " 2 " in text or text.endswith(" 2") or "dois" in text:
+            bet_num = 2
+        elif "aposta 1" in text or " 1 " in text or text.endswith(" 1") or "um" in text:
+            bet_num = 1
+        
+        if bet_num is None:
+            return None
+        
+        # Procura TODOS os valores (números que não são 1 ou 2)
+        nums = re.findall(r"(\d+(?:[.,]\d+)?)", text)
+        values = []
+        for n in nums:
+            n_clean = n.replace(",", ".")
+            n_float = float(n_clean)
+            if n_float not in [1.0, 2.0]:
+                values.append(n_float)
+        
+        # Verifica se tem "auto" ou "alto" para aposta automática
+        if "auto" in text or "alto" in text:
+            if len(values) >= 2:
+                # Primeiro valor = aposta, Segundo = auto cashout
+                return ("bet_auto", bet_num, values[0], values[1])
+            elif len(values) == 1:
+                # Só tem um valor = aposta, usa padrão 2.0 para auto
+                return ("bet_auto", bet_num, values[0], 2.0)
             else:
-                return ("bet_manual", bet_num, value, True)
+                # Sem valores, usa padrões
+                return ("bet_auto", bet_num, DEFAULT_BET_VALUES.get(bet_num, 5.0), 2.0)
+        
+        # Aposta manual
+        if len(values) >= 1:
+            return ("bet_manual", bet_num, values[0], True)
+        else:
+            # Sem valor especificado, usa padrão
+            return ("bet_manual", bet_num, DEFAULT_BET_VALUES.get(bet_num, 5.0), False)
 
     return None
 
 def execute_command(cmd):
-    if not cmd: return
-    if cmd[0] == "history": open_history()
+    if not cmd:
+        return
+    if cmd[0] == "history":
+        open_history()
     elif cmd[0] == "bet_manual":
         _, bet, value, use_value = cmd
         bet_manual(bet, value, use_value)
@@ -91,30 +98,42 @@ def execute_command(cmd):
         _, bet = cmd
         toggle_auto_cashout(bet)
 
-def process_spoken(text):
-    print(f"🗣️ Você disse: {text}")
-    cmd = parse_command(text)
-    if cmd:
-        threading.Thread(target=execute_command, args=(cmd,), daemon=True).start()
-    else:
-        print("❌ Comando não reconhecido")
-
 print("\n🎮 AVIATOR BOT ULTRA-RÁPIDO ATIVO\n")
 print("📢 EXEMPLOS DE COMANDOS:")
-print("aposta 1")
-print("aposta 2")
-print("apostar no 1")
-print("apostar no 2")
-print("aposta 1 10 reais")
-print("aposta 1 10 auto 2")
-print("saque 1")
-print("tirar saque automático 1")
-print("abrir histórico\n")
+print("✅ 5 reais aposta 1")
+print("✅ 5 reais na aposta 2")
+print("✅ 10 reais aposta 2 auto 3")
+print("✅ aposta 1")
+print("✅ aposta 2")
+print("✅ sacar 1")
+print("✅ tirar saque automático 1")
+print("✅ abrir histórico\n")
 
-# inicia o background listener
-stop_listening = start_listening(process_spoken)
+try:
+    while True:
+        print("🎤 Ouvindo...", end="\r")  # Indicador visual
+        spoken = listen_command()
+        if not spoken:
+            continue
+        
+        print(" " * 50, end="\r")  # Limpa linha
+        print(f"🗣️  Você disse: {spoken}")
 
-# mantém o programa vivo
-import time
-while True:
-    time.sleep(1)
+        cmd = parse_command(spoken)
+        if not cmd:
+            print("❌ Comando não reconhecido\n")
+            continue
+        
+        # Debug detalhado
+        if cmd[0] == "bet_manual":
+            print(f"✅ Aposta {cmd[1]} | Valor: R$ {cmd[2]:.2f} | Alterar: {cmd[3]}")
+        elif cmd[0] == "bet_auto":
+            print(f"✅ Aposta AUTO {cmd[1]} | Valor: R$ {cmd[2]:.2f} | Cashout: {cmd[3]:.1f}x")
+        else:
+            print(f"✅ Comando: {cmd}")
+
+        # Executa sem travar o reconhecimento
+        threading.Thread(target=execute_command, args=(cmd,), daemon=True).start()
+
+except KeyboardInterrupt:
+    print("\n🛑 Bot finalizado manualmente.")

@@ -1,24 +1,37 @@
 import speech_recognition as sr
 
 recognizer = sr.Recognizer()
-microphone = sr.Microphone()
 
-def start_listening(callback_function):
+# Configurações otimizadas para máxima sensibilidade
+recognizer.energy_threshold = 300  # MUITO mais sensível (padrão é 4000)
+recognizer.dynamic_energy_threshold = True
+recognizer.dynamic_energy_adjustment_damping = 0.15
+recognizer.dynamic_energy_ratio = 1.5
+recognizer.pause_threshold = 0.5  # Menos pausa necessária
+recognizer.phrase_threshold = 0.1
+recognizer.non_speaking_duration = 0.3
+
+def listen_command():
     """
-    callback_function(text) será chamado sempre que uma frase for reconhecida
+    Escuta comando de voz e retorna string lowercase.
+    Retorna None se não reconheceu.
     """
-    def internal_callback(recognizer, audio):
+    with sr.Microphone() as source:
         try:
+            # Calibração rápida apenas na primeira vez
+            if not hasattr(listen_command, 'calibrated'):
+                print("🎤 Calibrando microfone...")
+                recognizer.adjust_for_ambient_noise(source, duration=1)
+                listen_command.calibrated = True
+                print("✅ Microfone pronto!\n")
+            
+            # Escuta com timeout curto
+            audio = recognizer.listen(source, timeout=2, phrase_time_limit=5)
             text = recognizer.recognize_google(audio, language="pt-BR")
-            text = text.lower().strip()
-            if text:
-                callback_function(text)
+            return text.lower()
+        except sr.WaitTimeoutError:
+            return None
         except sr.UnknownValueError:
-            pass
-        except sr.RequestError as e:
-            print(f"❌ Erro de serviço: {e}")
-
-    with microphone as source:
-        recognizer.adjust_for_ambient_noise(source, duration=0.1)
-    stop_listening = recognizer.listen_in_background(microphone, internal_callback, phrase_time_limit=2)
-    return stop_listening
+            return None
+        except Exception:
+            return None
