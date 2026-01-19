@@ -71,9 +71,11 @@ def bet_auto(bet, value, auto_cashout):
 def cashout(bet):
     print(f"  💰 Sacando aposta {bet}")
     if bet == 1:
-        click(c.BET1_BET_BUTTON)
+        click(c.BET1_BET_BUTTON)  # Mesmo botão de apostar
+        print("  ✅ Saque 1 realizado")
     elif bet == 2:
-        click(c.BET2_BET_BUTTON)
+        click(c.BET2_BET_BUTTON)  # Mesmo botão de apostar
+        print("  ✅ Saque 2 realizado")
 
 # ===== DESLIGAR SAQUE AUTOMÁTICO =====
 def toggle_auto_cashout(bet):

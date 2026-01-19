@@ -22,21 +22,23 @@ def parse_command(text):
         return ("history",)
 
     # ---------- SAQUE ----------
-    if "sac" in text or "sacar" in text:
-        # Procura número da aposta
-        if "2" in text or "dois" in text:
+    if "sac" in text or "sacar" in text or "saque" in text or "cash" in text:
+        # Procura número da aposta - PRIORIZA 2
+        if "2" in text or "dois" in text or " 2" in text:
             return ("cashout", 2)
-        if "1" in text or "um" in text:
+        if "1" in text or "um" in text or " 1" in text:
             return ("cashout", 1)
         return None
 
     # ---------- DESLIGAR SAQUE AUTOMÁTICO ----------
-    if ("remover" in text or "desligar" in text or "tirar" in text) and "auto" in text:
-        if "2" in text or "dois" in text:
+    if ("remover" in text or "desligar" in text or "tirar" in text) and ("auto" in text or "alto" in text):
+        # Procura especificamente "aposta X" ou final da frase
+        if "aposta 2" in text or text.endswith(" 2") or text.endswith("dois"):
             return ("disable_auto_cashout", 2)
-        if "1" in text or "um" in text:
+        if "aposta 1" in text or text.endswith(" 1") or text.endswith("um"):
             return ("disable_auto_cashout", 1)
-        return None
+        # Se não especificou, assume aposta 1
+        return ("disable_auto_cashout", 1)
 
     # ---------- APOSTA ----------
     if "aposta" in text or "apostar" in text:
@@ -58,6 +60,10 @@ def parse_command(text):
             n_float = float(n_clean)
             if n_float not in [1.0, 2.0]:
                 values.append(n_float)
+        
+        # Debug: mostra números encontrados
+        if values:
+            print(f"  🔢 Números encontrados: {values}")
         
         # Verifica se tem "auto" ou "alto" para aposta automática
         if "auto" in text or "alto" in text:
@@ -129,6 +135,12 @@ try:
             print(f"✅ Aposta {cmd[1]} | Valor: R$ {cmd[2]:.2f} | Alterar: {cmd[3]}")
         elif cmd[0] == "bet_auto":
             print(f"✅ Aposta AUTO {cmd[1]} | Valor: R$ {cmd[2]:.2f} | Cashout: {cmd[3]:.1f}x")
+        elif cmd[0] == "cashout":
+            print(f"✅ SAQUE aposta {cmd[1]}")
+        elif cmd[0] == "history":
+            print(f"✅ Abrir histórico")
+        elif cmd[0] == "disable_auto_cashout":
+            print(f"✅ Desligar auto cashout {cmd[1]}")
         else:
             print(f"✅ Comando: {cmd}")
 
