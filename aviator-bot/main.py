@@ -1,11 +1,9 @@
-# main.py
 from aviator import bet_manual, bet_auto, cashout, open_history, toggle_auto_cashout
 from voice import listen_command
 import threading
 import re
 
-# ----------------- CONFIGURAÇÕES -----------------
-DEFAULT_BET_VALUES = {1: 5.0, 2: 10.0, 3: 20.0}  # valores padrões se você quiser usar com auto
+DEFAULT_BET_VALUES = {1: 5.0, 2: 10.0}
 NUM_WORDS = {
     "um": 1, "dois": 2, "três": 3, "tres": 3, "quatro": 4,
     "cinco": 5, "seis": 6, "sete": 7, "oito": 8, "nove": 9, "dez": 10
@@ -14,7 +12,6 @@ NUM_WORDS = {
 def word_to_number(word):
     return NUM_WORDS.get(word.lower())
 
-# ----------------- PARSE DE COMANDOS -----------------
 def parse_command(text):
     if not text:
         return None
@@ -59,7 +56,6 @@ def parse_command(text):
 
     # APOSTA MANUAL
     if "aposta" in text or "apostar" in text:
-        # número da aposta
         bet_num = None
         nums = re.findall(r"\d+", text)
         if nums:
@@ -79,15 +75,12 @@ def parse_command(text):
 
         if bet_num is not None:
             if value is None:
-                # Sem valor -> clicar direto
                 return ("bet_manual", bet_num, None, False)
             else:
-                # Valor definido -> digitar antes de apostar
                 return ("bet_manual", bet_num, value, True)
 
     return None
 
-# ----------------- EXECUTAR COMANDOS -----------------
 def execute_command(cmd):
     if not cmd:
         return
@@ -106,8 +99,7 @@ def execute_command(cmd):
         _, bet = cmd
         toggle_auto_cashout(bet)
 
-# ----------------- LOGS E INSTRUÇÕES -----------------
-print("\n🎮 AVIATOR BOT COM VOZ ULTRA-RÁPIDO ATIVO\n")
+print("\n🎮 AVIATOR BOT ULTRA-RÁPIDO ATIVO\n")
 print("📢 EXEMPLOS DE COMANDOS:")
 print("aposta 1")
 print("aposta 2")
@@ -119,7 +111,6 @@ print("saque 1")
 print("tirar saque automático 1")
 print("abrir histórico\n")
 
-# ----------------- LOOP DE ESCUTA CONTÍNUA -----------------
 try:
     while True:
         spoken = listen_command()
@@ -132,7 +123,6 @@ try:
             print("❌ Comando não reconhecido\n")
             continue
 
-        # Executa cada comando em thread separada para ser instantâneo
         threading.Thread(target=execute_command, args=(cmd,), daemon=True).start()
 
 except KeyboardInterrupt:
